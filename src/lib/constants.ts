@@ -56,56 +56,80 @@ export const OBJETIVOS: Record<
   },
 }
 
-export const DIVISOES: Record<
-  Divisao,
-  { label: string; desc: string; sessoes: SessionTemplate[]; diasNecessarios: number }
-> = {
-  ABCD: {
-    label: 'ABCD',
-    desc: '4 treinos na semana',
-    diasNecessarios: 4,
+export interface SessionTemplate {
+  letra: string
+  nome: string
+  grupos: Record<string, number>
+  recuperacao?: boolean
+}
+
+// Divisão de 5 dias reaproveitada por 5/6/7 dias (6 e 7 só acrescentam sessões).
+const SESSOES_5_DIAS: SessionTemplate[] = [
+  { letra: 'A', nome: 'Costas · Bíceps', grupos: { costas: 3, biceps: 2 } },
+  { letra: 'B', nome: 'Posterior de Pernas', grupos: { posterior: 2, gluteos: 2, panturrilha: 1, core: 1 } },
+  { letra: 'C', nome: 'Peito · Tríceps', grupos: { peito: 3, triceps: 2 } },
+  { letra: 'D', nome: 'Quadríceps', grupos: { quadriceps: 3, panturrilha: 1, core: 1 } },
+  { letra: 'E', nome: 'Braços · Ombros', grupos: { biceps: 2, triceps: 2, ombros: 2, core: 1 } },
+]
+
+const SESSOES_6_DIAS: SessionTemplate[] = [
+  ...SESSOES_5_DIAS,
+  { letra: 'F', nome: 'Abdômen · Cardio', grupos: { core: 3, cardio: 2 } },
+]
+
+// A divisão é derivada da quantidade de dias escolhidos (não é mais perguntada).
+export const SPLIT_POR_DIAS: Record<number, { chave: Divisao; sessoes: SessionTemplate[] }> = {
+  1: {
+    chave: 'FullBody',
     sessoes: [
-      { letra: 'A', nome: 'Peito · Bíceps', grupos: { peito: 3, biceps: 2 } },
-      { letra: 'B', nome: 'Costas · Tríceps', grupos: { costas: 3, triceps: 2 } },
-      { letra: 'C', nome: 'Pernas', grupos: { quadriceps: 2, posterior: 1, gluteos: 1, panturrilha: 1, core: 1 } },
-      { letra: 'D', nome: 'Ombros · Abdômen', grupos: { ombros: 3, core: 2 } },
+      {
+        letra: 'A',
+        nome: 'Corpo inteiro',
+        grupos: { peito: 1, costas: 1, quadriceps: 1, posterior: 1, ombros: 1, biceps: 1, triceps: 1, core: 1 },
+      },
     ],
   },
-  ABC: {
-    label: 'ABC',
-    desc: '3 treinos na semana',
-    diasNecessarios: 3,
-    sessoes: [
-      { letra: 'A', nome: 'Peito · Tríceps', grupos: { peito: 3, triceps: 2 } },
-      { letra: 'B', nome: 'Costas · Bíceps', grupos: { costas: 3, biceps: 2 } },
-      { letra: 'C', nome: 'Pernas · Ombros', grupos: { quadriceps: 2, posterior: 1, gluteos: 1, panturrilha: 1, ombros: 2, core: 2 } },
-    ],
-  },
-  AB: {
-    label: 'AB',
-    desc: '2 treinos na semana',
-    diasNecessarios: 2,
+  2: {
+    chave: 'AB',
     sessoes: [
       { letra: 'A', nome: 'Superiores', grupos: { peito: 2, costas: 2, ombros: 1, biceps: 1, triceps: 1 } },
       { letra: 'B', nome: 'Inferiores', grupos: { quadriceps: 2, posterior: 1, gluteos: 1, panturrilha: 1, core: 1 } },
     ],
   },
-  FullBody: {
-    label: 'Full Body',
-    desc: 'Corpo inteiro · 3x na semana',
-    diasNecessarios: 3,
+  3: {
+    chave: 'ABC',
     sessoes: [
-      { letra: 'A', nome: 'Full Body', grupos: { peito: 1, costas: 1, quadriceps: 1, posterior: 1, ombros: 1, biceps: 1, triceps: 1, core: 1 } },
-      { letra: 'B', nome: 'Full Body', grupos: { peito: 1, costas: 1, quadriceps: 1, posterior: 1, ombros: 1, biceps: 1, triceps: 1, core: 1 } },
-      { letra: 'C', nome: 'Full Body', grupos: { peito: 1, costas: 1, quadriceps: 1, posterior: 1, ombros: 1, biceps: 1, triceps: 1, core: 1 } },
+      { letra: 'A', nome: 'Costas · Bíceps', grupos: { costas: 3, biceps: 2 } },
+      { letra: 'B', nome: 'Peito · Tríceps', grupos: { peito: 3, triceps: 2 } },
+      {
+        letra: 'C',
+        nome: 'Pernas · Ombros',
+        grupos: { quadriceps: 2, posterior: 1, gluteos: 1, panturrilha: 1, ombros: 2, core: 2 },
+      },
+    ],
+  },
+  4: {
+    chave: 'ABCD',
+    sessoes: [
+      { letra: 'A', nome: 'Costas · Bíceps', grupos: { costas: 3, biceps: 2 } },
+      { letra: 'B', nome: 'Peito · Tríceps', grupos: { peito: 3, triceps: 2 } },
+      { letra: 'C', nome: 'Pernas', grupos: { quadriceps: 2, posterior: 1, gluteos: 1, panturrilha: 1, core: 1 } },
+      { letra: 'D', nome: 'Ombros · Abdômen', grupos: { ombros: 3, core: 2 } },
+    ],
+  },
+  5: { chave: 'ABCDE', sessoes: SESSOES_5_DIAS },
+  6: { chave: 'ABCDEF', sessoes: SESSOES_6_DIAS },
+  7: {
+    chave: 'ABCDEFG',
+    sessoes: [
+      ...SESSOES_6_DIAS,
+      { letra: 'G', nome: 'Recuperação ativa', grupos: {}, recuperacao: true },
     ],
   },
 }
 
-export interface SessionTemplate {
-  letra: string
-  nome: string
-  grupos: Record<string, number>
+export function divisaoPorDias(dias: number[]): Divisao | null {
+  return SPLIT_POR_DIAS[dias.length]?.chave ?? null
 }
 
 export const NIVEIS: Record<Nivel, { label: string; desc: string; metodo: MetodoProgressao }> = {
@@ -137,10 +161,13 @@ export const OBJETIVO_LABEL: Record<Objetivo, string> = {
 }
 
 export const DIVISAO_LABEL: Record<Divisao, string> = {
-  ABCD: 'ABCD',
-  ABC: 'ABC',
-  AB: 'AB',
   FullBody: 'Full Body',
+  AB: 'AB',
+  ABC: 'ABC',
+  ABCD: 'ABCD',
+  ABCDE: 'ABCDE',
+  ABCDEF: 'ABCDEF',
+  ABCDEFG: 'ABCDEFG',
 }
 
 export const GRUPO_LABEL: Record<string, string> = {
@@ -155,6 +182,7 @@ export const GRUPO_LABEL: Record<string, string> = {
   triceps: 'Tríceps',
   core: 'Core',
   antebraco: 'Antebraço',
+  cardio: 'Cardio',
   mobilidade: 'Mobilidade',
   estabilidade: 'Estabilidade',
 }

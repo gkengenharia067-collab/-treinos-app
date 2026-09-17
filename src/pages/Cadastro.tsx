@@ -12,13 +12,15 @@ import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/context/auth'
 import {
   DIAS_DISPONIVEIS,
-  DIVISOES,
+  DIVISAO_LABEL,
   EQUIPAMENTOS,
   NIVEIS,
   OBJETIVOS,
+  SPLIT_POR_DIAS,
+  divisaoPorDias,
 } from '@/lib/constants'
 import { carregarCatalogo, carregarPreferencia, gerarTreino, inserirMedida, salvarPreferencia } from '@/lib/data'
-import type { Divisao, Nivel, Objetivo, Restricao, Sexo } from '@/lib/types'
+import type { Nivel, Objetivo, Restricao, Sexo } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { createSupabaseError, isSupabaseConfigured, supabase } from '@/lib/supabase'
 
@@ -32,7 +34,6 @@ interface WizardData {
   peso: string
   altura: string
   objetivo: Objetivo | ''
-  divisao: Divisao | ''
   dias: number[]
   nivel: Nivel | ''
   equipamentos: string[]
@@ -51,23 +52,13 @@ const dadosIniciais: WizardData = {
   peso: '',
   altura: '',
   objetivo: '',
-  divisao: '',
   dias: [],
   nivel: '',
   equipamentos: [],
   restricoes: [],
 }
 
-const PASSOS = [
-  'Conta',
-  'Medidas',
-  'Objetivo',
-  'Divisão',
-  'Dias',
-  'Nível',
-  'Equipamentos',
-  'Restrições',
-]
+const PASSOS = ['Conta', 'Medidas', 'Objetivo', 'Dias', 'Nível', 'Equipamentos', 'Restrições']
 
 export function Cadastro() {
   const { usuario, perfil, registrar, atualizarPerfil, carregando } = useAuth()
@@ -122,6 +113,7 @@ export function Cadastro() {
   }, [usuario, perfil])
 
   const podeSeguir = useMemo(() => validarPasso(passo, dados), [passo, dados])
+  const divisao = useMemo(() => divisaoPorDias(dados.dias), [dados.dias])
   const totalPassos = PASSOS.length
 
   function atualizar(patch: Partial<WizardData>) {
@@ -162,8 +154,9 @@ export function Cadastro() {
         altura_cm: dados.altura ? Number(dados.altura) : null,
       })
 
+      if (!divisao) throw new Error('Selecione ao menos 1 dia de treino.')
       const preferencia = {
-        divisao: dados.divisao as Divisao,
+        divisao,
         objetivo: dados.objetivo as Objetivo,
         nivel: dados.nivel as Nivel,
         equipamentos: dados.equipamentos,
@@ -186,7 +179,7 @@ export function Cadastro() {
         preferencia,
         catalogo,
         versao: 1,
-        nome: `Treino ${DIVISOES[preferencia.divisao].label}`,
+        nome: `Treino ${DIVISAO_LABEL[divisao]}`,
         arquivar: null,
       })
 
@@ -260,21 +253,9 @@ export function Cadastro() {
               />
             )}
             {passo === 3 && (
-              <GradeOpcoes
-                opcoes={Object.entries(DIVISOES).map(([valor, d]) => ({
-                  valor,
-                  titulo: d.label,
-                  descricao: `${d.desc} · ${d.diasNecessarios}x/semana`,
-                }))}
-                selecionado={dados.divisao}
-                onSelect={(v) => atualizar({ divisao: v as Divisao })}
-              />
-            )}
-            {passo === 4 && (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Escolha os dias em que você treina. Sua divisão escolhida recomenda pelo menos{' '}
-                  <strong>{dados.divisao ? DIVISOES[dados.divisao].diasNecessarios : '—'}</strong> dia(s).
+                  Escolha os dias em que você treina. A divisão é calculada automaticamente pela quantidade de dias.
                 </p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {DIAS_DISPONIVEIS.map((dia) => {
@@ -294,9 +275,27 @@ export function Cadastro() {
                     )
                   })}
                 </div>
+                <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+                  {divisao ? (
+                    <>
+                      <p className="font-medium">
+                        Divisão {DIVISAO_LABEL[divisao]} · {dados.dias.length} dia(s)/semana
+                      </p>
+                      <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                        {SPLIT_POR_DIAS[dados.dias.length].sessoes.map((s) => (
+                          <li key={s.letra}>
+                            <span className="font-medium text-foreground">{s.letra}</span>: {s.nome}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">Selecione pelo menos 1 dia para definir a divisão.</p>
+                  )}
+                </div>
               </div>
             )}
-            {passo === 5 && (
+            {passo === 4 && (
               <GradeOpcoes
                 opcoes={Object.entries(NIVEIS).map(([valor, n]) => ({
                   valor,
@@ -307,7 +306,7 @@ export function Cadastro() {
                 onSelect={(v) => atualizar({ nivel: v as Nivel })}
               />
             )}
-            {passo === 6 && (
+            {passo === 5 && (
               <div className="grid gap-2 sm:grid-cols-2">
                 {EQUIPAMENTOS.map((eq) => {
                   const ativo = dados.equipamentos.includes(eq.valor)
@@ -329,7 +328,7 @@ export function Cadastro() {
                 })}
               </div>
             )}
-            {passo === 7 && (
+            {passo === 6 && (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Marque as restrições que você possui. Exercícios com risco são filtrados automaticamente e outros
@@ -556,14 +555,10 @@ function validarPasso(passo: number, d: WizardData): boolean {
     case 2:
       return Boolean(d.objetivo)
     case 3:
-      return Boolean(d.divisao)
-    case 4: {
-      if (!d.divisao) return false
-      return d.dias.length >= DIVISOES[d.divisao].diasNecessarios
-    }
-    case 5:
+      return d.dias.length >= 1
+    case 4:
       return Boolean(d.nivel)
-    case 6:
+    case 5:
       return d.equipamentos.length > 0
     default:
       return true
@@ -575,7 +570,6 @@ function tituloDoPasso(passo: number): string {
     'Dados pessoais',
     'Suas medidas',
     'Qual é o seu objetivo?',
-    'Escolha a divisão',
     'Dias disponíveis',
     'Qual seu nível?',
     'Equipamentos disponíveis',
@@ -588,8 +582,7 @@ function descricaoDoPasso(passo: number): string {
     'Crie seu acesso e informe dados básicos.',
     'Usamos essas informações para calcular IMC, %G e massa magra.',
     'O objetivo define séries, repetições e descanso.',
-    'A divisão define como os treinos são organizados na semana.',
-    'Quantos e quais dias você consegue treinar.',
+    'Quantos e quais dias você consegue treinar. A divisão sai daqui.',
     'O nível define o método de progressão de carga.',
     'O que você tem disponível para treinar.',
     'Selecione para evitar exercícios contraindicados.',

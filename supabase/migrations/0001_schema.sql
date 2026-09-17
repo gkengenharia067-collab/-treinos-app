@@ -53,7 +53,7 @@ create table public.exercicio_restricao (
 create table public.preferencia_treino (
   id uuid primary key default uuid_generate_v4(),
   usuario_id uuid not null unique references public.usuario (id) on delete cascade,
-  divisao text not null check (divisao in ('ABCD', 'ABC', 'AB', 'FullBody')),
+  divisao text not null check (divisao in ('FullBody', 'AB', 'ABC', 'ABCD', 'ABCDE', 'ABCDEF', 'ABCDEFG')),
   objetivo text not null check (objetivo in ('hipertrofia', 'definicao', 'forca', 'resistencia')),
   nivel text not null check (nivel in ('iniciante', 'intermediario', 'avancado')),
   dias_semana int[] not null default '{}',
@@ -237,11 +237,35 @@ create policy "dobra_all_own" on public.dobra_cutanea
   for all to authenticated using (usuario_id = auth.uid()) with check (usuario_id = auth.uid());
 
 -- ------------------------------------------------------------------
+-- PRIVILÉGIOS (GRANT) — obrigatório
+-- O Supabase não concede mais privilégios automaticamente a anon/authenticated
+-- para tabelas criadas via SQL. RLS e GRANT são camadas distintas: o GRANT
+-- libera a tabela, o RLS limita QUAIS linhas cada papel enxerga.
+-- ------------------------------------------------------------------
+grant usage on schema public to anon, authenticated;
+
+-- Catálogo: leitura aberta (inclusive anônimo, para o preview do wizard)
+grant select on public.restricao, public.exercicio, public.exercicio_restricao
+  to anon, authenticated;
+
+-- Dados do usuário: apenas autenticado (o RLS isola por auth.uid())
+grant select, insert, update, delete on public.usuario,
+  public.preferencia_treino, public.treino, public.sessao_treino,
+  public.sessao_exercicio, public.execucao, public.medida,
+  public.dobra_cutanea
+to authenticated;
+
+-- ------------------------------------------------------------------
 -- AVATARES (Storage) — pasta própria por usuário
 -- ------------------------------------------------------------------
-insert into storage.buckets (id, name, public)
-values ('avatares', 'avatares', true)
-on conflict (id) do nothing;
+do $$
+begin
+  insert into storage.buckets (id, name, public)
+  values ('avatares', 'avatares', true)
+  on conflict (id) do nothing;
+exception when insufficient_privilege then
+  raise warning 'Sem permissão para criar o bucket via SQL. Crie manualmente em Storage > New bucket: nome "avatares", Public bucket = ON.';
+end $$;
 
 create policy "avatares_pub_read" on storage.objects
   for select using (bucket_id = 'avatares');

@@ -1,6 +1,6 @@
 export type Sexo = 'masculino' | 'feminino'
 export type Plano = 'pago' | 'basico' | 'premium'
-export type Divisao = 'ABCD' | 'ABC' | 'AB' | 'FullBody'
+export type Divisao = 'FullBody' | 'AB' | 'ABC' | 'ABCD' | 'ABCDE' | 'ABCDEF' | 'ABCDEFG'
 export type Objetivo = 'hipertrofia' | 'definicao' | 'forca' | 'resistencia'
 export type Nivel = 'iniciante' | 'intermediario' | 'avancado'
 export type TipoExercicio = 'forca' | 'mobilidade' | 'estabilidade' | 'aquecimento'

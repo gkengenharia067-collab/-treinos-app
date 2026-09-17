@@ -1,4 +1,4 @@
-import { DIVISOES, GRUPOS_COMPOSTOS, NIVEIS, OBJETIVOS } from './constants'
+import { GRUPOS_COMPOSTOS, NIVEIS, OBJETIVOS, SPLIT_POR_DIAS } from './constants'
 import type {
   Exercicio,
   ExercicioRestricao,
@@ -102,7 +102,22 @@ function prescrever(
   ex: Exercicio,
   objetivo: Objetivo,
   nivel: Nivel,
-): Pick<ExercicioGerado, 'series' | 'reps_min' | 'reps_max' | 'tempo_descanso' | 'metodo_progressao' | 'rpe_alvo'> {
+): Pick<
+  ExercicioGerado,
+  'series' | 'reps_min' | 'reps_max' | 'reps' | 'tempo_descanso' | 'metodo_progressao' | 'rpe_alvo'
+> {
+  // Cardio é prescrito por duração, não por séries/repetições de carga.
+  if (ex.grupo_muscular === 'cardio') {
+    return {
+      series: null,
+      reps_min: null,
+      reps_max: null,
+      reps: '10–15 min',
+      tempo_descanso: 0,
+      metodo_progressao: null,
+      rpe_alvo: null,
+    }
+  }
   const p = OBJETIVOS[objetivo]
   const composto = GRUPOS_COMPOSTOS.has(ex.grupo_muscular)
   const metodo = NIVEIS[nivel].metodo
@@ -110,6 +125,7 @@ function prescrever(
     series: composto ? p.seriesComp : p.seriesIso,
     reps_min: p.repsMin,
     reps_max: p.repsMax,
+    reps: null,
     tempo_descanso: composto ? p.restComp : p.restIso,
     metodo_progressao: metodo,
     rpe_alvo: metodo === 'rpe' ? 8 : null,
@@ -201,17 +217,67 @@ function montarAquecimento(
   return out
 }
 
+const RECUPERACAO_MOBILIDADE = 4
+const RECUPERACAO_CARDIO = 2
+
+function montarRecuperacao(
+  letra: string,
+  nome: string,
+  catalogo: Exercicio[],
+  filtro: FiltroGeracao,
+  prefsEq: string[],
+  nomesRestricao: Map<number, string>,
+): SessaoGerada {
+  const exercicios: ExercicioGerado[] = []
+  let ordem = 0
+
+  // Mobilidade não é filtrada por equipamento (igual ao aquecimento);
+  // o cardio respeita o que o usuário tem disponível.
+  const mobilidade = catalogo.filter((e) => e.tipo === 'mobilidade' && !filtro.evitar.has(e.id))
+  const cardio = catalogo.filter(
+    (e) =>
+      e.grupo_muscular === 'cardio' &&
+      !filtro.evitar.has(e.id) &&
+      equipamentosCompatível(e, prefsEq),
+  )
+
+  for (const ex of pickKRandom(mobilidade, RECUPERACAO_MOBILIDADE)) {
+    exercicios.push(
+      mountExercicio(ex, ordem++, { series: 1, reps: '8–10 cada', tempo_descanso: 0 }, filtro, nomesRestricao),
+    )
+  }
+  for (const ex of pickKRandom(cardio, RECUPERACAO_CARDIO)) {
+    exercicios.push(
+      mountExercicio(ex, ordem++, { series: null, reps: '8–10 min leve', tempo_descanso: 0 }, filtro, nomesRestricao),
+    )
+  }
+
+  return { letra, nome, exercicios }
+}
+
 export function montarTreinoGerado(
-  prefs: Pick<PreferenciaTreino, 'divisao' | 'objetivo' | 'nivel' | 'equipamentos' | 'restricoes'>,
+  prefs: Pick<PreferenciaTreino, 'dias_semana' | 'objetivo' | 'nivel' | 'equipamentos' | 'restricoes'>,
   catalogo: Exercicio[],
   mapaContra: ExercicioRestricao[],
   nomesRestricao: Map<number, string>,
 ): SessaoGerada[] {
-  const template = DIVISOES[prefs.divisao]
+  const split = SPLIT_POR_DIAS[prefs.dias_semana?.length ?? 0]
+  if (!split) throw new Error('Selecione ao menos 1 dia de treino para gerar a divisão.')
   const filtro = buildFiltro(prefs.restricoes, mapaContra)
   const pool = poolPorGrupo(catalogo, filtro, prefs.equipamentos)
 
-  return template.sessoes.map((sessao) => {
+  return split.sessoes.map((sessao) => {
+    if (sessao.recuperacao) {
+      return montarRecuperacao(
+        sessao.letra,
+        sessao.nome,
+        catalogo,
+        filtro,
+        prefs.equipamentos,
+        nomesRestricao,
+      )
+    }
+
     const gruposDoDia = Object.keys(sessao.grupos)
     let ordem = 0
 

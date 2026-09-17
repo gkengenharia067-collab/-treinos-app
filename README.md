@@ -29,8 +29,20 @@ src/
    - `supabase/migrations/0001_schema.sql`
    - `supabase/migrations/0002_seed.sql`
    - `supabase/migrations/0003_gerar_treino.sql`
+   - `supabase/migrations/0004_permissoes_storage.sql` (idempotente)
+   - `supabase/migrations/0005_divisao_por_dias_e_cardio.sql` (idempotente)
+   - `supabase/migrations/0006_fix_validacao_divisao.sql` (idempotente)
 
    (ou use o CLI: `supabase db push` com os arquivos em `supabase/migrations`)
+
+   > **Importante:** o Supabase não concede mais privilégios automaticamente a
+   > `anon`/`authenticated` para objetos criados via SQL. Sem os `GRANT` do
+   > `0004`, o PostgREST responde `permission denied for table ...`. O `0004`
+   > pode ser reexecutado sem efeitos colaterais.
+   >
+   > Se a criação do bucket `avatares` via SQL falhar (linha de aviso no SQL
+   > Editor), crie-o manualmente em **Storage → New bucket**: nome `avatares`,
+   > **Public bucket = ON**.
 3. Em **Authentication → Providers → Email**, defina o que preferir. Com confirmação de e-mail ligada, o usuário confirma o link e depois faz login para concluir o wizard (os dados ficam salvos no navegador).
 4. Copie a URL do projeto e a `anon key` (Project Settings → API) para o `.env`:
 
@@ -59,8 +71,8 @@ Build de produção: `npm run build` · Lint: `npm run lint`.
 
 ## Regras implementadas (Fase 1 / MVP)
 
-- **Cadastro wizard multi-step:** dados pessoais → medidas → objetivo → divisão → dias → nível → equipamentos → restrições.
-- **Divisões:** ABC, ABCD, AB e Full Body (3x/semana).
+- **Cadastro wizard multi-step:** dados pessoais → medidas → objetivo → dias → nível → equipamentos → restrições.
+- **Divisão automática por dias** (tabela `SPLIT_POR_DIAS` em `constants.ts`): 1=Full Body · 2=Superiores/Inferiores · 3=ABC · 4=ABCD · 5=ABCDE (costas+bíceps / posterior / peito+tríceps / quadríceps / braços+ombro) · 6=ABCDEF (+ abdômen+cardio) · 7=ABCDEFG (+ recuperação ativa, só mobilidade/cardio leve). `treino.divisao` guarda o resultado calculado.
 - **Parâmetros por objetivo:** séries, reps e descanso conforme a tabela de hipertrofia/definição/força/resistência.
 - **Aquecimento fixo (5–8 min):** mobilidade + estabilidade + ativação específica do grupo do dia (sem imagens de terceiros).
 - **Filtro de contraindicação:** exercícios marcados como `evitar` são excluídos; `cautela` entram com aviso.

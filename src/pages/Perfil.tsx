@@ -12,11 +12,12 @@ import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/context/auth'
 import {
   DIAS_DISPONIVEIS,
-  DIVISOES,
   DIVISAO_LABEL,
   EQUIPAMENTOS,
   NIVEIS,
   OBJETIVOS,
+  SPLIT_POR_DIAS,
+  divisaoPorDias,
 } from '@/lib/constants'
 import {
   carregarCatalogo,
@@ -26,7 +27,7 @@ import {
   salvarPreferencia,
 } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
-import type { Divisao, Nivel, Objetivo, PreferenciaTreino, Restricao, Sexo } from '@/lib/types'
+import type { Nivel, Objetivo, PreferenciaTreino, Restricao, Sexo } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 export function Perfil() {
@@ -48,7 +49,6 @@ export function Perfil() {
   })
 
   const [form, setForm] = useState({
-    divisao: '' as Divisao | '',
     objetivo: '' as Objetivo | '',
     nivel: '' as Nivel | '',
     dias_semana: [] as number[],
@@ -63,7 +63,6 @@ export function Perfil() {
       setRestricoes(c.restricoes)
       if (p) {
         setForm({
-          divisao: p.divisao,
           objetivo: p.objetivo,
           nivel: p.nivel,
           dias_semana: p.dias_semana ?? [],
@@ -87,6 +86,7 @@ export function Perfil() {
   }, [perfil])
 
   const inicial = useMemo(() => (perfil?.nome ?? '?').slice(0, 2).toUpperCase(), [perfil])
+  const divisaoAtual = useMemo(() => divisaoPorDias(form.dias_semana), [form.dias_semana])
 
   function alternarNumero(lista: number[], v: number): number[] {
     return lista.includes(v) ? lista.filter((x) => x !== v) : [...lista, v]
@@ -113,11 +113,12 @@ export function Perfil() {
   }
 
   async function salvarPreferencias(regenerar: boolean) {
-    if (!usuario || !form.divisao || !form.objetivo || !form.nivel) return
+    const divisao = divisaoPorDias(form.dias_semana)
+    if (!usuario || !divisao || !form.objetivo || !form.nivel) return
     setSalvandoPref(true)
     try {
       await salvarPreferencia(usuario.id, {
-        divisao: form.divisao,
+        divisao,
         objetivo: form.objetivo,
         nivel: form.nivel,
         dias_semana: form.dias_semana,
@@ -131,7 +132,8 @@ export function Perfil() {
         await gerarTreino({
           usuarioId: usuario.id,
           preferencia: {
-            divisao: form.divisao,
+            divisao,
+            dias_semana: form.dias_semana,
             objetivo: form.objetivo,
             nivel: form.nivel,
             equipamentos: form.equipamentos,
@@ -139,7 +141,7 @@ export function Perfil() {
           },
           catalogo,
           versao,
-          nome: `Treino ${DIVISAO_LABEL[form.divisao]} v${versao}`,
+          nome: `Treino ${DIVISAO_LABEL[divisao]} v${versao}`,
           arquivar: ativo?.id ?? null,
         })
         toast.success('Preferências salvas e treino regenerado!')
@@ -314,13 +316,6 @@ export function Perfil() {
               onSelect={(v) => setForm((f) => ({ ...f, objetivo: v as Objetivo }))}
             />
           </Secao>
-          <Secao titulo="Divisão">
-            <Grade
-              opcoes={Object.entries(DIVISOES).map(([v, d]) => ({ valor: v, titulo: d.label, descricao: d.desc }))}
-              selecionado={form.divisao}
-              onSelect={(v) => setForm((f) => ({ ...f, divisao: v as Divisao }))}
-            />
-          </Secao>
           <Secao titulo="Nível (define a progressão)">
             <Grade
               opcoes={Object.entries(NIVEIS).map(([v, n]) => ({ valor: v, titulo: n.label, descricao: n.desc }))}
@@ -328,7 +323,7 @@ export function Perfil() {
               onSelect={(v) => setForm((f) => ({ ...f, nivel: v as Nivel }))}
             />
           </Secao>
-          <Secao titulo="Dias da semana">
+          <Secao titulo="Dias da semana (definem a divisão)">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {DIAS_DISPONIVEIS.map((dia) => {
                 const ativo = form.dias_semana.includes(dia.valor)
@@ -346,6 +341,24 @@ export function Perfil() {
                   </button>
                 )
               })}
+            </div>
+            <div className="mt-2 rounded-lg border bg-muted/40 p-3 text-sm">
+              {divisaoAtual ? (
+                <>
+                  <p className="font-medium">
+                    Divisão {DIVISAO_LABEL[divisaoAtual]} · {form.dias_semana.length} dia(s)/semana
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                    {SPLIT_POR_DIAS[form.dias_semana.length].sessoes.map((s) => (
+                      <li key={s.letra}>
+                        <span className="font-medium text-foreground">{s.letra}</span>: {s.nome}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-muted-foreground">Selecione pelo menos 1 dia para definir a divisão.</p>
+              )}
             </div>
           </Secao>
           <Secao titulo="Equipamentos">

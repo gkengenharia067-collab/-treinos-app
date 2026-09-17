@@ -1,4 +1,5 @@
 import { createSupabaseError, supabase } from './supabase'
+import { divisaoPorDias } from './constants'
 import { montarTreinoGerado } from './generator'
 import type {
   DobraCutanea,
@@ -99,7 +100,10 @@ export async function salvarPreferencia(usuarioId: string, campos: Partial<Prefe
 
 export interface ArgsGerarTreino {
   usuarioId: string
-  preferencia: Pick<PreferenciaTreino, 'divisao' | 'objetivo' | 'nivel' | 'equipamentos' | 'restricoes'>
+  preferencia: Pick<
+    PreferenciaTreino,
+    'divisao' | 'dias_semana' | 'objetivo' | 'nivel' | 'equipamentos' | 'restricoes'
+  >
   catalogo: CatalogoDisponivel
   versao: number
   nome: string
@@ -118,9 +122,12 @@ export async function gerarTreino(args: ArgsGerarTreino): Promise<string> {
     nomes,
   )
 
+  // treino.divisao guarda o resultado calculado a partir dos dias escolhidos.
+  const divisao = divisaoPorDias(args.preferencia.dias_semana) ?? args.preferencia.divisao
+
   const { data, error } = await supabase!.rpc('gerar_treino', {
     p_nome: args.nome,
-    p_divisao: args.preferencia.divisao,
+    p_divisao: divisao,
     p_objetivo: args.preferencia.objetivo,
     p_nivel: args.preferencia.nivel,
     p_versao: args.versao,

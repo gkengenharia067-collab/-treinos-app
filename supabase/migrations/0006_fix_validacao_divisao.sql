@@ -1,6 +1,10 @@
 -- ============================================================
--- Treina+ · Função atômica de geração/regeneração de treino
--- Insere treino + sessões + exercícios em uma única transação.
+-- 0006 · Corrige a validação de divisão dentro da RPC gerar_treino
+--
+-- O 0005 ajustou apenas as constraints das tabelas. A função gerar_treino
+-- (0003) ainda validava contra a lista antiga ('ABCD','ABC','AB','FullBody')
+-- e lançava "Divisão inválida" para ABCDE/ABCDEF/ABCDEFG.
+-- Recria a função com as 7 chaves. Idempotente.
 -- ============================================================
 
 create or replace function public.gerar_treino(
@@ -87,3 +91,5 @@ $$;
 
 revoke all on function public.gerar_treino(text, text, text, text, int, jsonb, uuid) from public;
 grant execute on function public.gerar_treino(text, text, text, text, int, jsonb, uuid) to authenticated;
+
+notify pgrst, 'reload schema';

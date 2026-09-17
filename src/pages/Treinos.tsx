@@ -59,6 +59,7 @@ export function Treinos() {
         usuarioId: usuario.id,
         preferencia: {
           divisao: pref.divisao,
+          dias_semana: pref.dias_semana ?? [],
           objetivo: pref.objetivo,
           nivel: pref.nivel,
           equipamentos: pref.equipamentos,
