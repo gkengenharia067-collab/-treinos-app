@@ -87,6 +87,7 @@ export interface SessaoExercicio {
   obs?: string | null
   metodo_progressao?: MetodoProgressao | null
   rpe_alvo?: number | null
+  ativo: boolean
 }
 
 export interface SessaoExercicioCompleta extends SessaoExercicio {

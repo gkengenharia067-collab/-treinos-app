@@ -7,8 +7,10 @@ import {
   Clock,
   Dumbbell,
   Flame,
+  Loader2,
   Pause,
   Play,
+  Repeat,
   RotateCcw,
   Save,
   TrendingUp,
@@ -26,14 +28,19 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/auth'
 import { METODO_LABEL } from '@/lib/constants'
 import {
+  carregarCatalogo,
+  carregarPreferencia,
   carregarSessaoCompleta,
   inserirExecucao,
   historicoPorExercicios,
+  trocarExercicio,
+  type CatalogoDisponivel,
   type SessaoPublica,
 } from '@/lib/data'
 import { fmtData } from '@/lib/format'
+import { alternativasExercicio } from '@/lib/generator'
 import { sugerirProgressao, type Prescricao, type UltimaExecucao } from '@/lib/progression'
-import type { Execucao, SessaoExercicio } from '@/lib/types'
+import type { Execucao, Exercicio, PreferenciaTreino, SessaoExercicio } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 export function TreinoDetalhe() {
@@ -43,6 +50,8 @@ export function TreinoDetalhe() {
   const [sessao, setSessao] = useState<SessaoPublica | null>(null)
   const [historico, setHistorico] = useState<Execucao[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [catalogo, setCatalogo] = useState<CatalogoDisponivel | null>(null)
+  const [preferencia, setPreferencia] = useState<PreferenciaTreino | null>(null)
 
   async function carregar() {
     if (!sessaoId) return
@@ -59,6 +68,38 @@ export function TreinoDetalhe() {
     void carregar().finally(() => setCarregando(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessaoId])
+
+  useEffect(() => {
+    if (!usuario) return
+    void Promise.all([carregarCatalogo(), carregarPreferencia(usuario.id)]).then(([c, p]) => {
+      setCatalogo(c)
+      setPreferencia(p)
+    })
+  }, [usuario])
+
+  function alternativasPara(e: SessaoExercicio & { exercicio: Exercicio | null }): Exercicio[] {
+    if (!catalogo || !preferencia || !sessao || !e.exercicio) return []
+    return alternativasExercicio(
+      e.exercicio_id,
+      e.tipo,
+      e.exercicio.grupo_muscular,
+      catalogo.catalogo,
+      catalogo.mapaContra,
+      preferencia.restricoes ?? [],
+      preferencia.equipamentos ?? [],
+      sessao.exercicios.map((x) => x.exercicio_id),
+    )
+  }
+
+  async function trocar(atual: SessaoExercicio, novo: Exercicio) {
+    try {
+      await trocarExercicio(atual, novo.id)
+      toast.success(`Exercício trocado por ${novo.nome}.`)
+      await carregar()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Falha ao trocar exercício')
+    }
+  }
 
   const porExercicio = useMemo(() => {
     const map = new Map<string, Execucao[]>()
@@ -137,6 +178,8 @@ export function TreinoDetalhe() {
             exercicio={e}
             historico={porExercicio.get(e.id) ?? []}
             usuarioId={usuario!.id}
+            alternativas={() => alternativasPara(e)}
+            onTrocar={(novo) => trocar(e, novo)}
             onSalvo={() => void carregar()}
           />
         ))}
@@ -246,11 +289,15 @@ function ExecucaoCard({
   exercicio,
   historico,
   usuarioId,
+  alternativas,
+  onTrocar,
   onSalvo,
 }: {
-  exercicio: SessaoExercicio & { exercicio: { nome: string } | null }
+  exercicio: SessaoExercicio & { exercicio: Exercicio | null }
   historico: Execucao[]
   usuarioId: string
+  alternativas: () => Exercicio[]
+  onTrocar: (novo: Exercicio) => void | Promise<void>
   onSalvo: () => void
 }) {
   const seriesPrescritas = exercicio.series ?? 3
@@ -261,6 +308,8 @@ function ExecucaoCard({
   const [obs, setObs] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [aberto, setAberto] = useState(false)
+  const [troca, setTroca] = useState<{ lista: Exercicio[]; indice: number } | null>(null)
+  const [trocando, setTrocando] = useState(false)
 
   const ultima = historico.length ? historico[historico.length - 1] : null
   const hoje = new Date().toDateString()
@@ -318,6 +367,26 @@ function ExecucaoCard({
       toast.error(err instanceof Error ? err.message : 'Falha ao registrar')
     } finally {
       setSalvando(false)
+    }
+  }
+
+  function iniciarTroca() {
+    const lista = alternativas()
+    if (!lista.length) {
+      toast.info('Nenhuma alternativa compatível com seus equipamentos e restrições.')
+      return
+    }
+    setTroca({ lista, indice: 0 })
+  }
+
+  async function confirmarTroca() {
+    if (!troca) return
+    setTrocando(true)
+    try {
+      await onTrocar(troca.lista[troca.indice])
+      setTroca(null)
+    } finally {
+      setTrocando(false)
     }
   }
 
@@ -451,11 +520,50 @@ function ExecucaoCard({
           </div>
         ) : null}
 
+        {troca ? (
+          <div className="rounded-lg border border-dashed p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Trocar exercício
+            </p>
+            <p className="mt-1 text-sm font-medium">{troca.lista[troca.indice].nome}</p>
+            <p className="text-xs text-muted-foreground">
+              Alternativa {troca.indice + 1} de {troca.lista.length} · mesmo grupo muscular e equipamentos
+              compatíveis
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => void confirmarTroca()} disabled={trocando}>
+                {trocando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Repeat className="h-4 w-4" />}
+                Trocar por este
+              </Button>
+              {troca.lista.length > 1 ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={trocando}
+                  onClick={() =>
+                    setTroca((t) => (t ? { ...t, indice: (t.indice + 1) % t.lista.length } : t))
+                  }
+                >
+                  Não serve, mostra outra
+                </Button>
+              ) : null}
+              <Button size="sm" variant="ghost" disabled={trocando} onClick={() => setTroca(null)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <Separator />
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => setAberto((a) => !a)}>
-            {aberto ? 'Ocultar' : 'Preencher carga/reps/RPE'}
-          </Button>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={() => setAberto((a) => !a)}>
+              {aberto ? 'Ocultar' : 'Preencher carga/reps/RPE'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={iniciarTroca} disabled={trocando}>
+              <Repeat className="h-3.5 w-3.5" /> Trocar exercício
+            </Button>
+          </div>
           <Button onClick={() => void salvar()} disabled={salvando || seriesFeitas === 0}>
             <Save className="h-4 w-4" /> Salvar execução
           </Button>

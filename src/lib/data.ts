@@ -149,7 +149,17 @@ export async function listarTreinosCompletos(usuarioId: string): Promise<TreinoD
     .eq('usuario_id', usuarioId)
     .order('criado_em', { ascending: false })
   if (error) throw erro(error)
-  return (data as TreinoDetalhado[]) ?? []
+  const treinos = (data as TreinoDetalhado[]) ?? []
+  for (const t of treinos) {
+    for (const s of t.sessoes) {
+      s.exercicios = s.exercicios.filter(estaAtivo)
+    }
+  }
+  return treinos
+}
+
+function estaAtivo(e: SessaoExercicio): boolean {
+  return e.ativo !== false
 }
 
 export async function carregarSessaoCompleta(sessaoId: string): Promise<SessaoPublica | null> {
@@ -161,7 +171,38 @@ export async function carregarSessaoCompleta(sessaoId: string): Promise<SessaoPu
     .order('ordem', { referencedTable: 'exercicios', ascending: true })
     .maybeSingle()
   if (error) throw erro(error)
-  return (data as SessaoPublica | null) ?? null
+  const sessao = (data as SessaoPublica | null) ?? null
+  if (sessao) sessao.exercicios = sessao.exercicios.filter(estaAtivo)
+  return sessao
+}
+
+export async function trocarExercicio(
+  atual: SessaoExercicio,
+  novoExercicioId: number,
+): Promise<void> {
+  precisaDeSupabase()
+  const { error: eInsert } = await supabase!.from('sessao_exercicio').insert({
+    sessao_id: atual.sessao_id,
+    exercicio_id: novoExercicioId,
+    ordem: atual.ordem,
+    tipo: atual.tipo,
+    series: atual.series ?? null,
+    reps_min: atual.reps_min ?? null,
+    reps_max: atual.reps_max ?? null,
+    reps: atual.reps ?? null,
+    carga: atual.carga ?? null,
+    tempo_descanso: atual.tempo_descanso ?? null,
+    obs: atual.obs ?? null,
+    metodo_progressao: atual.metodo_progressao ?? null,
+    rpe_alvo: atual.rpe_alvo ?? null,
+    ativo: true,
+  })
+  if (eInsert) throw erro(eInsert)
+  const { error: eUpdate } = await supabase!
+    .from('sessao_exercicio')
+    .update({ ativo: false })
+    .eq('id', atual.id)
+  if (eUpdate) throw erro(eUpdate)
 }
 
 export async function buscarTreinoPorSessao(sessaoId: string): Promise<Treino | null> {

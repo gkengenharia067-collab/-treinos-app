@@ -32,6 +32,7 @@ src/
    - `supabase/migrations/0004_permissoes_storage.sql` (idempotente)
    - `supabase/migrations/0005_divisao_por_dias_e_cardio.sql` (idempotente)
    - `supabase/migrations/0006_fix_validacao_divisao.sql` (idempotente)
+   - `supabase/migrations/0007_sessao_exercicio_ativo.sql` (idempotente)
 
    (ou use o CLI: `supabase db push` com os arquivos em `supabase/migrations`)
 
@@ -49,9 +50,14 @@ src/
 ```
 VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
 VITE_SUPABASE_ANON_KEY=SUA_ANON_KEY
+VITE_APP_ACCESS_PASSWORD=SUA_SENHA_DE_ACESSO
 ```
 
 > O bucket `avatares` e suas policies são criados na migration `0001`.
+>
+> `VITE_APP_ACCESS_PASSWORD` habilita o portão de acesso inicial (tela de senha).
+> Se ficar em branco, o portão é desativado. É apenas uma barreira de entrada —
+> a proteção real dos dados continua sendo o Supabase Auth + RLS.
 
 ## Rodando localmente
 
@@ -66,7 +72,7 @@ Build de produção: `npm run build` · Lint: `npm run lint`.
 ## Deploy na Vercel
 
 1. Importe o repositório na Vercel (framework **Vite**).
-2. Defina as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em **Settings → Environment Variables**.
+2. Defina as variáveis `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `VITE_APP_ACCESS_PASSWORD` em **Settings → Environment Variables**.
 3. Build command `npm run build`, output `dist`.
 
 ## Regras implementadas (Fase 1 / MVP)
@@ -80,6 +86,8 @@ Build de produção: `npm run build` · Lint: `npm run lint`.
 - **Cálculos:** IMC, %G por US Navy, %G por Pollock 3 dobras (Jackson & Pollock + Siri), massa gorda/magra, RCQ e CMB.
 - **Execução ao vivo:** séries, reps, carga, RPE, observações e histórico por exercício.
 - **Evolução:** cards de métricas, gráfico de linha, radar de perímetros, tabela de progressão de carga e badges.
+- **Troca de exercício:** durante a sessão, o usuário pode substituir um exercício por outra alternativa do mesmo grupo muscular, compatível com seus equipamentos e restrições. A linha antiga é desativada (`sessao_exercicio.ativo = false`), preservando o histórico de execução.
+- **Portão de acesso:** tela de senha (`VITE_APP_ACCESS_PASSWORD`) antes do app; liberação por sessão do navegador.
 
 ## Sobre o campo `plano`
 

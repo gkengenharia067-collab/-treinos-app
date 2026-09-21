@@ -26,13 +26,13 @@ const contagem = async (tabela) => {
 }
 
 const ex = await contagem('exercicio')
-esperado('catalogo exercicio (116)', ex.count === 116, `count=${ex.count} erro=${ex.erro}`)
+esperado('catalogo exercicio (123)', ex.count === 123, `count=${ex.count} erro=${ex.erro}`)
 
 const re = await contagem('restricao')
 esperado('restricao (7)', re.count === 7, `count=${re.count} erro=${re.erro}`)
 
 const er = await contagem('exercicio_restricao')
-esperado('exercicio_restricao (131)', er.count === 131, `count=${er.count} erro=${er.erro}`)
+esperado('exercicio_restricao (140)', er.count === 140, `count=${er.count} erro=${er.erro}`)
 
 const fn = await sb.rpc('gerar_treino', {
   p_nome: 'x',

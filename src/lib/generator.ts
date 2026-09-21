@@ -255,6 +255,30 @@ function montarRecuperacao(
   return { letra, nome, exercicios }
 }
 
+export function alternativasExercicio(
+  exercicioId: number,
+  tipo: TipoExercicio,
+  grupoMuscular: string,
+  catalogo: Exercicio[],
+  mapaContra: ExercicioRestricao[],
+  restricoes: number[],
+  equipamentos: string[],
+  idsAtivosNaSessao: number[],
+): Exercicio[] {
+  const filtro = buildFiltro(restricoes, mapaContra)
+  const ativos = new Set(idsAtivosNaSessao)
+  const candidatos = catalogo.filter(
+    (e) =>
+      e.id !== exercicioId &&
+      e.tipo === tipo &&
+      e.grupo_muscular === grupoMuscular &&
+      !filtro.evitar.has(e.id) &&
+      equipamentosCompatível(e, equipamentos) &&
+      !ativos.has(e.id),
+  )
+  return pickKRandom(candidatos, candidatos.length)
+}
+
 export function montarTreinoGerado(
   prefs: Pick<PreferenciaTreino, 'dias_semana' | 'objetivo' | 'nivel' | 'equipamentos' | 'restricoes'>,
   catalogo: Exercicio[],

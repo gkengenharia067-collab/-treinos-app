@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, Dumbbell, Loader2, MailCheck } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Dumbbell, Eye, EyeOff, Loader2, MailCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -395,6 +395,9 @@ function PassoConta({
   atualizar: (patch: Partial<WizardData>) => void
   jaLogado: boolean
 }) {
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false)
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -414,25 +417,51 @@ function PassoConta({
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="senha">Senha</Label>
+<div className="space-y-2">
+            <Label htmlFor="senha">Senha</Label>
+            <div className="relative">
               <Input
                 id="senha"
-                type="password"
+                type={mostrarSenha ? 'text' : 'password'}
                 value={dados.senha}
                 onChange={(e) => atualizar({ senha: e.target.value })}
                 placeholder="Mínimo 6 caracteres"
+                className="pr-10"
               />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
+                onClick={() => setMostrarSenha((m) => !m)}
+                aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmar">Confirmar senha</Label>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmar">Confirmar senha</Label>
+            <div className="relative">
               <Input
                 id="confirmar"
-                type="password"
+                type={mostrarConfirmar ? 'text' : 'password'}
                 value={dados.confirmar}
                 onChange={(e) => atualizar({ confirmar: e.target.value })}
+                className="pr-10"
               />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
+                onClick={() => setMostrarConfirmar((m) => !m)}
+                aria-label={mostrarConfirmar ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {mostrarConfirmar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
             </div>
+          </div>
           </div>
         </>
       )}
