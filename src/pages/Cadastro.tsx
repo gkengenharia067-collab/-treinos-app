@@ -382,6 +382,14 @@ export function Cadastro() {
             </Button>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/login')}
+          className="mx-auto block text-sm font-medium text-primary underline-offset-4 hover:underline focus:outline-none focus-visible:underline"
+        >
+          Já tem uma conta? Faça login
+        </button>
       </div>
     </div>
   )
