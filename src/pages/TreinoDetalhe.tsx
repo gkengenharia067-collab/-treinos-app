@@ -33,6 +33,7 @@ import {
   carregarSessaoCompleta,
   inserirExecucao,
   historicoPorExercicios,
+  listarExerciciosDaSessao,
   trocarExercicio,
   type CatalogoDisponivel,
   type SessaoPublica,
@@ -52,11 +53,16 @@ export function TreinoDetalhe() {
   const [carregando, setCarregando] = useState(true)
   const [catalogo, setCatalogo] = useState<CatalogoDisponivel | null>(null)
   const [preferencia, setPreferencia] = useState<PreferenciaTreino | null>(null)
+  const [idsJaUsados, setIdsJaUsados] = useState<number[]>([])
 
   async function carregar() {
     if (!sessaoId) return
-    const s = await carregarSessaoCompleta(sessaoId)
+    const [s, linhas] = await Promise.all([
+      carregarSessaoCompleta(sessaoId),
+      listarExerciciosDaSessao(sessaoId),
+    ])
     setSessao(s)
+    setIdsJaUsados(linhas.map((l) => l.exercicio_id).filter((id): id is number => id != null))
     if (s) {
       const ids = s.exercicios.filter((e) => e.tipo === 'forca').map((e) => e.id)
       setHistorico(await historicoPorExercicios(ids))
@@ -87,7 +93,7 @@ export function TreinoDetalhe() {
       catalogo.mapaContra,
       preferencia.restricoes ?? [],
       preferencia.equipamentos ?? [],
-      sessao.exercicios.map((x) => x.exercicio_id),
+      idsJaUsados,
     )
   }
 

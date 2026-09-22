@@ -34,6 +34,12 @@ export interface ExecucaoDetalhada extends Execucao {
   sessao_exercicio: { exercicio: { nome: string } | null } | null
 }
 
+export interface ExercicioDaSessao {
+  id: string
+  exercicio_id: number | null
+  ativo: boolean
+}
+
 function erro(err: unknown): Error {
   return new Error(createSupabaseError(err))
 }
@@ -174,6 +180,19 @@ export async function carregarSessaoCompleta(sessaoId: string): Promise<SessaoPu
   const sessao = (data as SessaoPublica | null) ?? null
   if (sessao) sessao.exercicios = sessao.exercicios.filter(estaAtivo)
   return sessao
+}
+
+// Memória da sessão para troca de exercício: retorna TODAS as linhas da sessão
+// (ativas e já trocadas/desativadas), para que nenhum exercício seja sugerido
+// de novo nem duplique os que já estão/micro estiveram na sessão.
+export async function listarExerciciosDaSessao(sessaoId: string): Promise<ExercicioDaSessao[]> {
+  precisaDeSupabase()
+  const { data, error } = await supabase!
+    .from('sessao_exercicio')
+    .select('id, exercicio_id, ativo')
+    .eq('sessao_id', sessaoId)
+  if (error) throw erro(error)
+  return (data as ExercicioDaSessao[]) ?? []
 }
 
 export async function trocarExercicio(

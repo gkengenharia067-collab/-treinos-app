@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Dumbbell, Eye, EyeOff, Loader2, LogIn } from 'lucide-react'
+import { Dumbbell, Loader2, LogIn } from 'lucide-react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { PasswordInput } from '@/components/password-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,7 +17,6 @@ export function Login() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [enviando, setEnviando] = useState(false)
-  const [mostrarSenha, setMostrarSenha] = useState(false)
 
   if (!configurado) {
     return (
@@ -83,28 +83,14 @@ export function Login() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="senha">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="senha"
-                  type={mostrarSenha ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="••••••••"
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
-                  onClick={() => setMostrarSenha((m) => !m)}
-                  aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
+              <PasswordInput
+                id="senha"
+                autoComplete="current-password"
+                required
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
             <Button type="submit" className="w-full" disabled={enviando}>
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}

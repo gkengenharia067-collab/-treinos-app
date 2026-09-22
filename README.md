@@ -33,6 +33,7 @@ src/
    - `supabase/migrations/0005_divisao_por_dias_e_cardio.sql` (idempotente)
    - `supabase/migrations/0006_fix_validacao_divisao.sql` (idempotente)
    - `supabase/migrations/0007_sessao_exercicio_ativo.sql` (idempotente)
+   - `supabase/migrations/0008_mais_exercicios_casa.sql` (idempotente)
 
    (ou use o CLI: `supabase db push` com os arquivos em `supabase/migrations`)
 

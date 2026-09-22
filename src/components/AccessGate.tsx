@@ -1,8 +1,8 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
+import { PasswordInput } from '@/components/password-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const CHAVE_SESSAO = 'treina_acesso_liberado'
@@ -18,7 +18,6 @@ export function AccessGate({ children }: { children: ReactNode }) {
   })
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState(false)
-  const [mostrarSenha, setMostrarSenha] = useState(false)
 
   // Sem senha configurada o portão fica desativado (evita travar o
   // desenvolvimento local). A proteção real continua sendo o Supabase Auth + RLS.
@@ -59,31 +58,17 @@ export function AccessGate({ children }: { children: ReactNode }) {
           <form onSubmit={enviar} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="senha-acesso">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="senha-acesso"
-                  type={mostrarSenha ? 'text' : 'password'}
-                  autoFocus
-                  autoComplete="off"
-                  value={senha}
-                  placeholder="••••••••"
-                  className="pr-10"
-                  onChange={(e) => {
-                    setSenha(e.target.value)
-                    setErro(false)
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
-                  onClick={() => setMostrarSenha((m) => !m)}
-                  aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
+              <PasswordInput
+                id="senha-acesso"
+                autoFocus
+                autoComplete="off"
+                value={senha}
+                placeholder="••••••••"
+                onChange={(e) => {
+                  setSenha(e.target.value)
+                  setErro(false)
+                }}
+              />
               {erro ? <p className="text-xs text-destructive">Senha incorreta. Tente novamente.</p> : null}
             </div>
             <Button type="submit" className="w-full" disabled={!senha}>

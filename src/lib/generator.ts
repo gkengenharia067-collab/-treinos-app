@@ -255,6 +255,10 @@ function montarRecuperacao(
   return { letra, nome, exercicios }
 }
 
+// Alternativas para troca de exercício: mesmo grupo muscular e tipo, com
+// restrições/equipamentos compatíveis. `idsJaUsadosNaSessao` é a "memória" da
+// sessão: exercícios ativos OU já trocados (ativo=false) nunca são sugeridos,
+// prevenindo repetição e duplicação. Retorna todos os candidatos embaralhados.
 export function alternativasExercicio(
   exercicioId: number,
   tipo: TipoExercicio,
@@ -263,10 +267,10 @@ export function alternativasExercicio(
   mapaContra: ExercicioRestricao[],
   restricoes: number[],
   equipamentos: string[],
-  idsAtivosNaSessao: number[],
+  idsJaUsadosNaSessao: number[],
 ): Exercicio[] {
   const filtro = buildFiltro(restricoes, mapaContra)
-  const ativos = new Set(idsAtivosNaSessao)
+  const usados = new Set(idsJaUsadosNaSessao)
   const candidatos = catalogo.filter(
     (e) =>
       e.id !== exercicioId &&
@@ -274,7 +278,7 @@ export function alternativasExercicio(
       e.grupo_muscular === grupoMuscular &&
       !filtro.evitar.has(e.id) &&
       equipamentosCompatível(e, equipamentos) &&
-      !ativos.has(e.id),
+      !usados.has(e.id),
   )
   return pickKRandom(candidatos, candidatos.length)
 }
