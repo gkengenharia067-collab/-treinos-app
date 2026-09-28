@@ -125,6 +125,10 @@ export interface Medida {
   panturrilha_e?: number | null
   ombro?: number | null
   pescoco?: number | null
+  gordura_balanca?: number | null
+  massa_magra_balanca?: number | null
+  agua_corporal?: number | null
+  massa_ossea?: number | null
 }
 
 export interface DobraCutanea {

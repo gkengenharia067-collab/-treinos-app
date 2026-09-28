@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Award, Loader2, Plus } from 'lucide-react'
+import { Award, Loader2, Plus, Scale } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
   CartesianGrid,
@@ -91,6 +91,23 @@ export function Evolucao() {
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [medidasAsc, dobras, perfil],
+  )
+
+  const balanca = useMemo(
+    () =>
+      medidas.find(
+        (m) =>
+          m.gordura_balanca != null ||
+          m.massa_magra_balanca != null ||
+          m.agua_corporal != null ||
+          m.massa_ossea != null,
+      ),
+    [medidas],
+  )
+  const balancaMet = useMemo(
+    () => (balanca ? calcularMetricas(balanca, dobraDaMedida(balanca), perfil) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [balanca, dobras, perfil],
   )
 
   const serieLinha = useMemo(
@@ -233,6 +250,65 @@ export function Evolucao() {
           badge={<DeltaBadge valor={delta(atual.peso, inicial.peso)} unidade="kg" inverterBom={false} />}
         />
       </div>
+
+      {balanca ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Scale className="h-4 w-4" /> Balança de bioimpedância
+            </CardTitle>
+            <CardDescription>
+              Comparação entre o cálculo (fita/pinça) e a leitura direta da balança em {fmtDataCurta(balanca.data)}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {balanca.gordura_balanca != null ? (
+              <>
+                <MetricCard
+                  titulo="% Gordura (Calculada)"
+                  valor={fmtNum(balancaMet?.pctGordura ?? null)}
+                  unidade="%"
+                  badge={
+                    balancaMet?.pctGordura != null ? (
+                      <DeltaBadge
+                        valor={delta(balanca.gordura_balanca, balancaMet.pctGordura)}
+                        unidade="pp"
+                        inverterBom={true}
+                      />
+                    ) : undefined
+                  }
+                />
+                <MetricCard titulo="% Gordura (Balança)" valor={fmtNum(balanca.gordura_balanca)} unidade="%" />
+              </>
+            ) : null}
+            {balanca.massa_magra_balanca != null ? (
+              <>
+                <MetricCard
+                  titulo="Massa magra (Calculada)"
+                  valor={fmtNum(balancaMet?.massaMagra ?? null)}
+                  unidade="kg"
+                  badge={
+                    balancaMet?.massaMagra != null ? (
+                      <DeltaBadge
+                        valor={delta(balanca.massa_magra_balanca, balancaMet.massaMagra)}
+                        unidade="kg"
+                        inverterBom={false}
+                      />
+                    ) : undefined
+                  }
+                />
+                <MetricCard titulo="Massa magra (Balança)" valor={fmtNum(balanca.massa_magra_balanca)} unidade="kg" />
+              </>
+            ) : null}
+            {balanca.agua_corporal != null ? (
+              <MetricCard titulo="Água corporal (Balança)" valor={fmtNum(balanca.agua_corporal)} unidade="%" />
+            ) : null}
+            {balanca.massa_ossea != null ? (
+              <MetricCard titulo="Massa óssea (Balança)" valor={fmtNum(balanca.massa_ossea)} unidade="kg" />
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

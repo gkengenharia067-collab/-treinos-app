@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, Calculator, Loader2, Save } from 'lucide-react'
+import { ArrowLeft, Calculator, Loader2, Save, Scale } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { MetricCard } from '@/components/MetricCard'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -38,6 +39,13 @@ const CAMPOS_DOBRA: { chave: string; label: string }[] = [
   { chave: 'axilar_media', label: 'Axilar média' },
   { chave: 'coxa', label: 'Coxa' },
   { chave: 'abdomen', label: 'Abdômen' },
+]
+
+const CAMPOS_BALANCA: { chave: string; label: string; sufixo: string }[] = [
+  { chave: 'gordura_balanca', label: 'Gordura corporal', sufixo: '%' },
+  { chave: 'massa_magra_balanca', label: 'Massa magra', sufixo: 'kg' },
+  { chave: 'agua_corporal', label: 'Água corporal', sufixo: '%' },
+  { chave: 'massa_ossea', label: 'Massa óssea', sufixo: 'kg' },
 ]
 
 export function MedidasNova() {
@@ -79,6 +87,10 @@ export function MedidasNova() {
       coxa_e: numero('coxa_e') ?? null,
       panturrilha_d: numero('panturrilha_d') ?? null,
       panturrilha_e: numero('panturrilha_e') ?? null,
+      gordura_balanca: numero('gordura_balanca') ?? null,
+      massa_magra_balanca: numero('massa_magra_balanca') ?? null,
+      agua_corporal: numero('agua_corporal') ?? null,
+      massa_ossea: numero('massa_ossea') ?? null,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [form, usuario?.id],
@@ -107,6 +119,8 @@ export function MedidasNova() {
     [medidaPreview, dobraPreview, perfil],
   )
 
+  const gorduraBalanca = numero('gordura_balanca')
+
   async function salvar() {
     if (!usuario) return
     if (!numero('peso_kg')) {
@@ -132,6 +146,10 @@ export function MedidasNova() {
         coxa_e: numero('coxa_e') ?? null,
         panturrilha_d: numero('panturrilha_d') ?? null,
         panturrilha_e: numero('panturrilha_e') ?? null,
+        gordura_balanca: numero('gordura_balanca') ?? null,
+        massa_magra_balanca: numero('massa_magra_balanca') ?? null,
+        agua_corporal: numero('agua_corporal') ?? null,
+        massa_ossea: numero('massa_ossea') ?? null,
       })
 
       const temDobra = CAMPOS_DOBRA.some((c) => numero(c.chave as string) != null)
@@ -180,6 +198,21 @@ export function MedidasNova() {
         />
         <MetricCard titulo="Massa magra" valor={fmtNum(metricas.massaMagra)} unidade="kg" />
         <MetricCard titulo="Massa gorda" valor={fmtNum(metricas.massaGorda)} unidade="kg" />
+        {gorduraBalanca != null ? (
+          <MetricCard
+            titulo="%G Balança"
+            valor={fmtNum(gorduraBalanca)}
+            unidade="%"
+            descricao="bioimpedância"
+            badge={
+              metricas.pctGordura != null ? (
+                <Badge variant={gorduraBalanca > metricas.pctGordura ? 'destructive' : 'success'}>
+                  {gorduraBalanca > metricas.pctGordura ? 'acima do cálculo' : 'abaixo do cálculo'}
+                </Badge>
+              ) : undefined
+            }
+          />
+        ) : null}
         <MetricCard titulo="RCQ" valor={fmtNum(metricas.rcq, 2)} descricao="cintura / quadril" />
         <MetricCard titulo="CMB" valor={fmtNum(metricas.cmb)} unidade="cm" descricao="braço − π·DCT" />
         <MetricCard titulo="%G US Navy" valor={fmtNum(metricas.pctGorduraNavy)} unidade="%" />
@@ -236,6 +269,31 @@ export function MedidasNova() {
               valor={form[c.chave] ?? ''}
               set={set}
               step="0.5"
+            />
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Scale className="h-4 w-4" /> Dados da balança{' '}
+            <span className="text-xs font-normal text-muted-foreground">(Opcional)</span>
+          </CardTitle>
+          <CardDescription>
+            Valores lidos direto de uma balança de bioimpedância, para comparar com o cálculo por fita/pinça.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {CAMPOS_BALANCA.map((c) => (
+            <Campo
+              key={c.chave}
+              label={c.label}
+              campo={c.chave}
+              sufixo={c.sufixo}
+              valor={form[c.chave] ?? ''}
+              set={set}
+              step="0.1"
             />
           ))}
         </CardContent>

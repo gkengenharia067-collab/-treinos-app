@@ -343,6 +343,10 @@ export async function inserirMedida(usuarioId: string, medida: Partial<Medida>):
       panturrilha_e: medida.panturrilha_e ?? null,
       ombro: medida.ombro ?? null,
       pescoco: medida.pescoco ?? null,
+      gordura_balanca: medida.gordura_balanca ?? null,
+      massa_magra_balanca: medida.massa_magra_balanca ?? null,
+      agua_corporal: medida.agua_corporal ?? null,
+      massa_ossea: medida.massa_ossea ?? null,
     })
     .select('id')
     .single()

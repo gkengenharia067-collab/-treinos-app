@@ -34,6 +34,7 @@ src/
    - `supabase/migrations/0006_fix_validacao_divisao.sql` (idempotente)
    - `supabase/migrations/0007_sessao_exercicio_ativo.sql` (idempotente)
    - `supabase/migrations/0008_mais_exercicios_casa.sql` (idempotente)
+   - `supabase/migrations/0009_balanca_inteligente.sql` (idempotente)
 
    (ou use o CLI: `supabase db push` com os arquivos em `supabase/migrations`)
 
