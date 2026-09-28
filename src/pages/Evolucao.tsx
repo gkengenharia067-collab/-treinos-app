@@ -41,6 +41,22 @@ import { fmtDataCurta, fmtNum } from '@/lib/format'
 import { calcularMetricas } from '@/lib/metricas'
 import type { DobraCutanea, Medida } from '@/lib/types'
 
+const PERIMETROS: { chave: string; label: string; valor: (m: Medida) => number | null }[] = [
+  { chave: 'pescoco', label: 'Pescoço', valor: (m) => m.pescoco ?? null },
+  { chave: 'cintura', label: 'Cintura', valor: (m) => m.cintura ?? null },
+  { chave: 'abdomen', label: 'Abdômen', valor: (m) => m.abdomen ?? null },
+  { chave: 'quadril', label: 'Quadril', valor: (m) => m.quadril ?? null },
+  { chave: 'coxa', label: 'Coxa (média)', valor: (m) => mediaLados(m.coxa_d, m.coxa_e) },
+  { chave: 'braco', label: 'Braço (média)', valor: (m) => mediaLados(m.braco_d, m.braco_e) },
+  { chave: 'panturrilha', label: 'Panturrilha (média)', valor: (m) => mediaLados(m.panturrilha_d, m.panturrilha_e) },
+]
+
+function mediaLados(a?: number | null, b?: number | null): number | null {
+  const valores = [a, b].filter((v): v is number => v != null)
+  if (!valores.length) return null
+  return valores.reduce((s, v) => s + v, 0) / valores.length
+}
+
 export function Evolucao() {
   const { usuario, perfil } = useAuth()
   const [carregando, setCarregando] = useState(true)
@@ -109,6 +125,25 @@ export function Evolucao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [balanca, dobras, perfil],
   )
+
+  const perimetros = useMemo(() => {
+    const linhas = PERIMETROS.map(({ chave, label, valor }) => {
+      const valores = medidasAsc
+        .map((m) => ({ v: valor(m) }))
+        .filter((x): x is { v: number } => x.v != null)
+      const atual = valores[valores.length - 1] ?? null
+      const anterior = valores[valores.length - 2] ?? null
+      return {
+        chave,
+        label,
+        atual: atual?.v ?? null,
+        anterior: anterior?.v ?? null,
+        delta: atual && anterior ? atual.v - anterior.v : null,
+      }
+    })
+    return linhas.filter((l) => l.atual != null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [medidasAsc])
 
   const serieLinha = useMemo(
     () =>
@@ -309,6 +344,52 @@ export function Evolucao() {
           </CardContent>
         </Card>
       ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Evolução da fita métrica</CardTitle>
+          <CardDescription>Perímetros mais recentes e a comparação com a medição anterior (cm).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {perimetros.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Perímetro</TableHead>
+                  <TableHead className="text-right">Atual</TableHead>
+                  <TableHead className="text-right">Anterior</TableHead>
+                  <TableHead className="text-right">Δ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {perimetros.map((p) => (
+                  <TableRow key={p.chave}>
+                    <TableCell className="font-medium">{p.label}</TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{fmtNum(p.atual)} cm</TableCell>
+                    <TableCell className="text-right text-muted-foreground tabular-nums">
+                      {p.anterior != null ? `${fmtNum(p.anterior)} cm` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {p.delta != null ? (
+                        <Badge variant="secondary">
+                          {p.delta > 0 ? '+' : ''}
+                          {fmtNum(p.delta)} cm
+                        </Badge>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Registre perímetros em "Nova medida" para acompanhar a evolução da fita métrica.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
