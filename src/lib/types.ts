@@ -44,6 +44,8 @@ export interface Exercicio {
   grupo_muscular: string
   tipo: TipoExercicio
   equipamentos: string[]
+  imagem_url_inicio?: string | null
+  imagem_url_fim?: string | null
 }
 
 export interface ExercicioRestricao {

@@ -317,6 +317,9 @@ function ExecucaoCard({
   const [troca, setTroca] = useState<{ lista: Exercicio[]; indice: number } | null>(null)
   const [trocando, setTrocando] = useState(false)
 
+  const temInicio = exercicio.exercicio?.imagem_url_inicio ?? null
+  const temFim = exercicio.exercicio?.imagem_url_fim ?? null
+
   const ultima = historico.length ? historico[historico.length - 1] : null
   const hoje = new Date().toDateString()
   const feitoHoje = historico.some((h) => h.concluido && new Date(h.data).toDateString() === hoje)
@@ -398,6 +401,36 @@ function ExecucaoCard({
 
   return (
     <Card className={cn(feitoHoje && 'border-emerald-500/40')}>
+      {temInicio || temFim ? (
+        <div className={cn('grid gap-2 p-4 pb-0', temInicio && temFim ? 'sm:grid-cols-2' : '')}>
+          {temInicio ? (
+            <div className="relative overflow-hidden rounded-lg border bg-muted/50">
+              <img
+                src={temInicio}
+                alt={`${exercicio.exercicio?.nome ?? 'Exercício'}: posição inicial`}
+                loading="lazy"
+                className="h-40 w-full object-cover sm:h-48"
+              />
+              <span className="absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                Início
+              </span>
+            </div>
+          ) : null}
+          {temFim ? (
+            <div className="relative overflow-hidden rounded-lg border bg-muted/50">
+              <img
+                src={temFim}
+                alt={`${exercicio.exercicio?.nome ?? 'Exercício'}: posição final`}
+                loading="lazy"
+                className="h-40 w-full object-cover sm:h-48"
+              />
+              <span className="absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                Fim
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div className="min-w-0">
           <CardTitle className="flex flex-wrap items-center gap-2 text-base">
