@@ -116,5 +116,9 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Evita scroll horizontal acidental em telas pequenas sem quebrar
+       o comportamento do header sticky (overflow-x: clip não cria
+       scroll container, diferente de hidden). */
+    overflow-x: clip;
   }
 }
